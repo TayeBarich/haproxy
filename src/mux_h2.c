@@ -7729,6 +7729,9 @@ static size_t h2_nego_ff(struct stconn *sc, struct buffer *input, size_t count, 
 		goto end;
 	}
 
+	COUNT_IF(1, "nego ff starting");
+
+	COUNT_IF(h2s_mws(h2s) <= 0, "stream flow-controlled");
 	if (h2s_mws(h2s) <= 0) {
 		h2s->flags |= H2_SF_BLK_SFCTL;
 		if (LIST_INLIST(&h2s->list))
@@ -7738,6 +7741,8 @@ static size_t h2_nego_ff(struct stconn *sc, struct buffer *input, size_t count, 
 		TRACE_STATE("stream window <=0, flow-controlled", H2_EV_H2S_SEND|H2_EV_H2S_FCTL, h2c->conn, h2s);
 		goto end;
 	}
+
+	COUNT_IF(h2c->mws <= 0, "conn flow-controlled");
 	if (h2c->mws <= 0) {
 		h2s->flags |= H2_SF_BLK_MFCTL;
 		h2s->sd->iobuf.flags |= IOBUF_FL_FF_BLOCKED;
@@ -7769,6 +7774,7 @@ static size_t h2_nego_ff(struct stconn *sc, struct buffer *input, size_t count, 
 	}
 
 	if (!h2_get_buf(h2c, mbuf)) {
+		COUNT_IF(1, "wait room out buf");
 		h2c->flags |= H2_CF_MUX_MALLOC;
 		h2s->flags |= H2_SF_BLK_MROOM;
 		h2s->sd->iobuf.flags |= IOBUF_FL_FF_BLOCKED;
